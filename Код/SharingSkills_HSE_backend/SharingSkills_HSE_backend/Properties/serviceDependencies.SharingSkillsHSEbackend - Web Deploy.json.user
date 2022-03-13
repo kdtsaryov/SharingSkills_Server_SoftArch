@@ -1,0 +1,34 @@
+{
+  "dependencies": {
+    "mssql1": {
+      "restored": true,
+      "restoreTime": "2021-05-05T14:53:12.8743746Z"
+    },
+    "apis1": {
+      "restored": true,
+      "restoreTime": "2021-04-03T17:55:56.1988382Z"
+    }
+  },
+  "parameters": {
+    "apis1.resourceGroupName": {
+      "Name": "apis1.resourceGroupName",
+      "Type": "resourceGroup",
+      "Value": "SharingSkillsgroup"
+    },
+    "mssql1.subscriptionId": {
+      "Name": "mssql1.subscriptionId",
+      "Type": "subscription",
+      "Value": "584ebc4f-4a0a-4064-9069-8e6a835b0117"
+    },
+    "apis1.subscriptionId": {
+      "Name": "apis1.subscriptionId",
+      "Type": "subscription",
+      "Value": "584ebc4f-4a0a-4064-9069-8e6a835b0117"
+    },
+    "mssql1.resourceGroupName": {
+      "Name": "mssql1.resourceGroupName",
+      "Type": "resourceGroup",
+      "Value": "SharingSkillsResGr"
+    }
+  }
+}

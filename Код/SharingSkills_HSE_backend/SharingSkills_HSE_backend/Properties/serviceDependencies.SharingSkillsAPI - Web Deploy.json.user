@@ -1,0 +1,30 @@
+{
+  "dependencies": {},
+  "parameters": {
+    "SharingSkillsAPI.resourceGroupName": {
+      "Name": "SharingSkillsAPI.resourceGroupName",
+      "Type": "resourceGroup",
+      "Value": "SharingSkillsResGr"
+    },
+    "SharingSkillsAPI.resourceGroupLocation": {
+      "Name": "SharingSkillsAPI.resourceGroupLocation",
+      "Type": null,
+      "Value": "northeurope"
+    },
+    "SharingSkillsAPI.resourceName": {
+      "Name": "SharingSkillsAPI.resourceName",
+      "Type": null,
+      "Value": "SharingSkillsAPI"
+    },
+    "subscriptionId": {
+      "Name": "subscriptionId",
+      "Type": "subscription",
+      "Value": "584ebc4f-4a0a-4064-9069-8e6a835b0117"
+    },
+    "SharingSkillsAPI.subscriptionId": {
+      "Name": "SharingSkillsAPI.subscriptionId",
+      "Type": "subscription",
+      "Value": "584ebc4f-4a0a-4064-9069-8e6a835b0117"
+    }
+  }
+}
