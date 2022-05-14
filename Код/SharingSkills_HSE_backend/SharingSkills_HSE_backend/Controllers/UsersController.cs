@@ -21,6 +21,9 @@ namespace SharingSkills_HSE_backend.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
+        /// <summary>
+        /// Сущность управления JWT-токенами
+        /// </summary>
         private readonly IJWTManagerRepository _jWTManager;
         /// <summary>
         /// Генератор случайных чисел для генерации кода подтверждения
@@ -331,7 +334,12 @@ namespace SharingSkills_HSE_backend.Controllers
             return Ok(token);
         }
 
+        /// <summary>
+        /// Обновление токена авторизации
+        /// </summary>
+        /// <param name="data">Предыдущий полученный токен. Включает в себя сам токен, токен обновления и почту пользователя</param>
         [HttpPost("refresh-token")]
+        // POST: api/Users/refresh-token
         public IActionResult RefreshAuthToken(Tokens data)
         {
             User userData = _context.Users.FirstOrDefault(x => x.Mail == data.Mail && x.RefreshToken == data.RefreshToken);

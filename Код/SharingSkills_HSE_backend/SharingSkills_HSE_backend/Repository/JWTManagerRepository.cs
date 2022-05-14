@@ -14,11 +14,17 @@ namespace SharingSkills_HSE_backend.Repository
 {
     public class JWTManagerRepository : IJWTManagerRepository
     {
-		private readonly IConfiguration iconfiguration;
-		public JWTManagerRepository(IConfiguration iconfiguration)
+		public JWTManagerRepository()
 		{
-			this.iconfiguration = iconfiguration;
 		}
+
+		/// <summary>
+		///	Метод полной аутентификации пользователя.
+		///	Создается новый токен доступа и новый токен обновления, 
+		///	Токен обновления записывается в структуру пользователя, которая позже сохранятеся в БД
+		/// </summary>
+		/// <param name="user">Структура с данными пользователя</param>
+		/// <returns>Структура-токен: токен доступа, токен обновления и почта пользователя</returns>
 		public Tokens Authenticate(ref User user)
 		{
 			var tokens = GenerateJWTToken(user);
@@ -30,6 +36,12 @@ namespace SharingSkills_HSE_backend.Repository
 			return tokens;
 		}
 
+		/// <summary>
+		///	Метод частичной аутентификации пользователя.
+		///	Создается только новый токен доступа
+		/// </summary>
+		/// <param name="user">Структура с данными пользователя</param>
+		/// <returns>Структура-токен: токен доступа и почта пользователя. Токен обновления пустой</returns>
 		public Tokens GenerateJWTToken(User user)
 		{
 			var identity = GetIdentity(user);
@@ -45,6 +57,10 @@ namespace SharingSkills_HSE_backend.Repository
 			return new Tokens { Token = encodedJwt, Mail = user.Mail };
 		}
 
+		/// <summary>
+		///	Метод генерации токена обновления
+		/// </summary>
+		/// <returns>Строковое представление токена</returns>
 		private static string GenerateRefreshToken()
 		{
 			using var rngCryptoServiceProvider = new RNGCryptoServiceProvider();
@@ -54,6 +70,10 @@ namespace SharingSkills_HSE_backend.Repository
 			return Convert.ToBase64String(randomBytes);
 		}
 
+		/// <summary>
+		///	Метод создания сущности ClaimsIdentity из сущности пользователя
+		/// </summary>
+		/// <returns>Сущность ClaimsIdentity</returns>
 		private static ClaimsIdentity GetIdentity(User user)
 		{
 			var claims = new List<Claim>

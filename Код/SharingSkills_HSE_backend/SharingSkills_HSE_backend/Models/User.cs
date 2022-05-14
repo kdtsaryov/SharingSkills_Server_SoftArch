@@ -111,8 +111,14 @@ namespace SharingSkills_HSE_backend.Models
         /// </summary>
         public List<Skill> Skills { get; set; } = new List<Skill>();
 
+        /// <summary>
+        /// Токен обновления токена доступа для учетной записи пользователя
+        /// </summary>
         public string RefreshToken { get; set; }
 
+        /// <summary>
+        /// Время до которого будет существовать указанный токен обновления
+        /// </summary>
         public DateTime RefreshTokenExpiryTime { get; set; }
     }
 }
