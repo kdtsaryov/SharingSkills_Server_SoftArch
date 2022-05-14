@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SharingSkills_HSE_backend.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SharingSkills_HSE_backend.Controllers
 {
@@ -70,6 +71,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="skill">Навык</param>
         // PUT: api/Skills/1
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> PutSkill(long id, Skill skill)
         {
             if (id != skill.Id)
@@ -95,6 +97,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="skill">Навык</param>
         // POST: api/Skills
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<Skill>> PostSkill(Skill skill)
         {
             // Если такой навык уже есть
@@ -120,6 +123,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="id">ID навыка</param>
         // DELETE: api/Skills/5
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteSkill(long id)
         {
             var skill = await _context.Skills.FindAsync(id);
@@ -139,4 +143,5 @@ namespace SharingSkills_HSE_backend.Controllers
             return _context.Skills.Any(e => e.Id == id);
         }
     }
+}}
 }
