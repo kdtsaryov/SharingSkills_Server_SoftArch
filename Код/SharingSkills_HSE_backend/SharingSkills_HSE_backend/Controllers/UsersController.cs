@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SharingSkills_HSE_backend.Models;
 using SharingSkills_HSE_backend.Other;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SharingSkills_HSE_backend.Controllers
 {
@@ -40,6 +44,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="mail">Почта</param>
         // GET: api/Users/kdtsaryov@edu.hse.ru/password
         [HttpGet("{mail}/password")]
+        [Authorize]
         public async Task<ActionResult<User>> ForgetPassword(string mail)
         {
             // Находим пользователя
@@ -61,6 +66,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// </summary>
         // GET: api/Users
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
             return await _context.Users.Include(u => u.Transactions).Include(u => u.Skills).ToListAsync();
@@ -72,6 +78,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="mail">Почта</param>
         // GET: api/Users/kdtsaryov@edu.hse.ru
         [HttpGet("{mail}")]
+        [Authorize]
         public async Task<ActionResult<User>> GetUser(string mail)
         {
             // Находим пользователя и возвращаем его, если такой нашелся
@@ -219,6 +226,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="user">Пользователь</param>
         // PUT: api/Users/kdtsaryov@edu.hse.ru
         [HttpPut("{mail}")]
+        [Authorize]
         public async Task<IActionResult> PutUser(string mail, User user)
         {
             if (mail != user.Mail)
@@ -244,6 +252,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="user">Пользователь</param>
         // POST: api/Users
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<User>> PostUser(User user)
         {
             var u = await _context.Users.FindAsync(user.Mail);
@@ -266,6 +275,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="mail">Почта</param>
         // DELETE: api/Users/kdtsaryov@edu.hse.ru
         [HttpDelete("{mail}")]
+        [Authorize]
         public async Task<IActionResult> DeleteUser(string mail)
         {
             var user = await _context.Users.FindAsync(mail);
@@ -284,6 +294,63 @@ namespace SharingSkills_HSE_backend.Controllers
         private bool UserExists(string mail)
         {
             return _context.Users.Any(e => e.Mail == mail);
+        }
+
+        /// <summary>
+        /// Получение токена авторизации
+        /// </summary>
+        /// <param name="mail">Почта</param>
+        /// <param name="password">Пароль</param>
+        [HttpPost("token/{mail}/{password}")]
+        // POST: api/Users/token/kdtsaryov@edu.hse.ru/1234567
+        public IActionResult Token(string mail, string password)
+        {
+            var identity = GetIdentity(mail, password);
+            if (identity == null)
+            {
+                return BadRequest();
+            }
+
+            var now = DateTime.UtcNow;
+            // создаем JWT-токен
+            var jwt = new JwtSecurityToken(
+                    issuer: AuthOptions.ISSUER,
+                    audience: AuthOptions.AUDIENCE,
+                    notBefore: now,
+                    claims: identity.Claims,
+                    expires: now.Add(TimeSpan.FromMinutes(AuthOptions.LIFETIME)),
+                    signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
+            var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
+
+            var response = new
+            {
+                access_token = encodedJwt,
+                mail = identity.Name
+            };
+            return new JsonResult(response);
+        }
+
+        /// <summary>
+        /// Находит зарегистрированного пользователя по почте и паролю
+        /// </summary>
+        /// <param name="mail">Почта</param>
+        /// <param name="password">Пароль</param>
+        /// <returns></returns>
+        private ClaimsIdentity GetIdentity(string mail, string password)
+        {
+            User user = _context.Users.FirstOrDefault(x => x.Mail == mail && x.Password == password);
+            if (user != null)
+            {
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimsIdentity.DefaultNameClaimType, user.Mail)
+                };
+                ClaimsIdentity claimsIdentity =
+                new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType, user.Mail);
+                return claimsIdentity;
+            }
+            // Если пользователя не найдено
+            return null;
         }
     }
 }
