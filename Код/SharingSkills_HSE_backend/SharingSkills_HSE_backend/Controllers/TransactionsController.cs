@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SharingSkills_HSE_backend.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using SharingSkills_HSE_backend.Other;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SharingSkills_HSE_backend.Controllers
 {
@@ -61,6 +62,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="mail">Почта того, кто завершил обмен</param>
         // PUT: api/Transactions/1?mail=kdtsaryov@edu.hse.ru
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> PutTransaction(int id, Transaction transaction, string mail = "")
         {
             if (id != transaction.Id)
@@ -117,6 +119,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="transaction">Обмен</param>
         // POST: api/Transactions
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<Transaction>> PostTransaction(Transaction transaction)
         {
             // Если такой обмен уже есть
@@ -151,6 +154,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="sendNotification">Отправлять ли уведомление</param>
         // DELETE: api/Transactions/1?sendNotification=true
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteTransaction(long id, bool sendNotification = false)
         {
             var t = await _context.Transactions.FindAsync(id);
