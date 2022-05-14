@@ -69,6 +69,7 @@ namespace SharingSkills_HSE_backend
                         };
                     });
             services.AddSingleton<IJWTManagerRepository, JWTManagerRepository>();
+            services.AddMvc();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

@@ -20,7 +20,7 @@ namespace SharingSkills_HSE_backend.Other
         {
             // Создание самого письма
             var emailMessage = new MimeMessage();
-            emailMessage.From.Add(new MailboxAddress("Обмен навыками", "sharing-skills@sharing-skills.xyz"));
+            emailMessage.From.Add(new MailboxAddress("Обмен навыками", "sharingskills@sharingskills.xyz"));
             emailMessage.To.Add(new MailboxAddress("", email));
             emailMessage.Subject = subject;
             emailMessage.Body = new TextPart("Plain") { Text = message };
@@ -29,9 +29,9 @@ namespace SharingSkills_HSE_backend.Other
             using (var client = new SmtpClient())
             {
                 await client.ConnectAsync("smtp.yandex.ru", 465, true);
-                await client.AuthenticateAsync("sharing-skills@sharing-skills.xyz", "admin1337");
+                await client.AuthenticateAsync("sharingskills@sharingskills.xyz", "admin1337admin");
                 // Отправка письма
-                await client.SendAsync(emailMessage);
+                //await client.SendAsync(emailMessage);
                 await client.DisconnectAsync(true);
             }
         }

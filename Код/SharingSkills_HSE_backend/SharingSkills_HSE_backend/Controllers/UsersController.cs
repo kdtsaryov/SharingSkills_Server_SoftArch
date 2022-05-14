@@ -6,9 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SharingSkills_HSE_backend.Models;
 using SharingSkills_HSE_backend.Other;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using SharingSkills_HSE_backend.Repository;
 
@@ -19,7 +16,7 @@ namespace SharingSkills_HSE_backend.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    public class UsersController : ControllerBase
+    public class UsersController : Controller
     {
         /// <summary>
         /// Сущность управления JWT-токенами
@@ -50,21 +47,49 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="mail">Почта</param>
         // GET: api/Users/kdtsaryov@edu.hse.ru/password
         [HttpGet("{mail}/password")]
-        [Authorize]
-        public async Task<ActionResult<User>> ForgetPassword(string mail)
+        public async Task<ActionResult<User>> ForgotPassword(string mail)
         {
             // Находим пользователя
             var user = await _context.Users.Include(u => u.Transactions).Include(u => u.Skills).FirstOrDefaultAsync(u => u.Mail == mail);
             // Если такой пользователь есть
             if (user != null)
             {
+                var callbackUrl = Url.Action("ResetPassword", "Users", new { userMail = user.Mail}, protocol: HttpContext.Request.Scheme);
                 // Отправляем письмо с паролем
-                await Mail.SendEmailAsync(user.Mail, "Напоминание пароля", "Здравствуйте!\n" +
-                "В Обмене Навыками была нажата кнопка \"Забыли пароль?\"\n" +
-                $"Ваш пароль - {user.Password}\n");
-                return Ok();
+                await Mail.SendEmailAsync(user.Mail, "Сброс пароля", 
+                    $"Для сброса пароля пройдите по ссылке: <a href='{callbackUrl}'>link</a>");
+                return Ok($"Для сброса пароля пройдите по ссылке: <a href='{callbackUrl}'>link</a>");
             }
             return BadRequest();
+        }
+
+        /// <summary>
+        /// Сброс пароля
+        /// </summary>
+        [HttpGet("ResetPassword")]
+        // GET: api/Users/ResetPassword?userMail=kdtsaryov@edu.hse.ru
+        public IActionResult ResetPassword(string userMail)
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// Сброс пароля
+        /// </summary>
+        /// <param name="model">Визуальная модель для сброса пароля</param>
+        [HttpPost("ResetPassword")]
+        // POST: api/Users/ResetPassword?userMail=kdtsaryov@edu.hse.ru
+        public async Task<IActionResult> ResetPassword(string userMail, [FromForm] ResetPasswordViewModel model)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Mail == model.Mail);
+            if (user == null)
+            {
+                return View("ResetPasswordConfirmation");
+            }
+            user.Password = model.Password;
+            _context.Entry(user).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+            return View("ResetPasswordConfirmation");
         }
 
         /// <summary>
@@ -307,7 +332,7 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="mail">Почта</param>
         /// <param name="password">Пароль</param>
         [HttpPost("authenticate/{mail}/{password}")]
-        // POST: api/Users/authenticate/kdtsaryov@edu.hse.ru/1234567
+        // POST: api/Users/authenticate/kdtsaryov@edu.hse.ru/123456789
         public async Task<IActionResult> Authenticate(string mail, string password)
         {
             User userData = _context.Users.FirstOrDefault(x => x.Mail == mail && x.Password == password);
