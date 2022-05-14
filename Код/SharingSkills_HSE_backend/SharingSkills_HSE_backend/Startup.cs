@@ -9,6 +9,7 @@ using System;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using SharingSkills_HSE_backend.Other;
+using SharingSkills_HSE_backend.Repository;
 
 namespace SharingSkills_HSE_backend
 {
@@ -63,8 +64,11 @@ namespace SharingSkills_HSE_backend
                             IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(),
                             // Валидация ключа безопасности
                             ValidateIssuerSigningKey = true,
+                            // Параметр отвечающий за подсчет времени жизни токена (Без него нельзя поставить время жизни меньше 5 минут)
+                            ClockSkew = TimeSpan.Zero
                         };
                     });
+            services.AddSingleton<IJWTManagerRepository, JWTManagerRepository>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
