@@ -143,5 +143,4 @@ namespace SharingSkills_HSE_backend.Controllers
             return _context.Skills.Any(e => e.Id == id);
         }
     }
-}}
 }

@@ -110,5 +110,9 @@ namespace SharingSkills_HSE_backend.Models
         /// Навыки
         /// </summary>
         public List<Skill> Skills { get; set; } = new List<Skill>();
+
+        public string RefreshToken { get; set; }
+
+        public DateTime RefreshTokenExpiryTime { get; set; }
     }
 }

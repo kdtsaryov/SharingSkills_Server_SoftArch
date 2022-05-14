@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using SharingSkills_HSE_backend.Repository;
 
 namespace SharingSkills_HSE_backend.Controllers
 {
@@ -20,6 +21,7 @@ namespace SharingSkills_HSE_backend.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
+        private readonly IJWTManagerRepository _jWTManager;
         /// <summary>
         /// Генератор случайных чисел для генерации кода подтверждения
         /// </summary>
@@ -33,9 +35,10 @@ namespace SharingSkills_HSE_backend.Controllers
         /// Конструктор
         /// </summary>
         /// <param name="context">Контекст базы данных</param>
-        public UsersController(SharingSkillsContext context)
+        public UsersController(SharingSkillsContext context, IJWTManagerRepository jWTManager)
         {
             _context = context;
+            _jWTManager = jWTManager;
         }
 
         /// <summary>
@@ -252,7 +255,6 @@ namespace SharingSkills_HSE_backend.Controllers
         /// <param name="user">Пользователь</param>
         // POST: api/Users
         [HttpPost]
-        [Authorize]
         public async Task<ActionResult<User>> PostUser(User user)
         {
             var u = await _context.Users.FindAsync(user.Mail);
@@ -301,56 +303,46 @@ namespace SharingSkills_HSE_backend.Controllers
         /// </summary>
         /// <param name="mail">Почта</param>
         /// <param name="password">Пароль</param>
-        [HttpPost("token/{mail}/{password}")]
-        // POST: api/Users/token/kdtsaryov@edu.hse.ru/1234567
-        public IActionResult Token(string mail, string password)
+        [HttpPost("authenticate/{mail}/{password}")]
+        // POST: api/Users/authenticate/kdtsaryov@edu.hse.ru/1234567
+        public async Task<IActionResult> Authenticate(string mail, string password)
         {
-            var identity = GetIdentity(mail, password);
-            if (identity == null)
+            User userData = _context.Users.FirstOrDefault(x => x.Mail == mail && x.Password == password);
+
+            if (userData == null)
             {
-                return BadRequest();
+                return Unauthorized();
+            }
+            var token = _jWTManager.Authenticate(ref userData);
+
+            _context.Entry(userData).State = EntityState.Modified;
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!UserExists(mail))
+                    return NotFound();
+                else
+                    throw;
             }
 
-            var now = DateTime.UtcNow;
-            // создаем JWT-токен
-            var jwt = new JwtSecurityToken(
-                    issuer: AuthOptions.ISSUER,
-                    audience: AuthOptions.AUDIENCE,
-                    notBefore: now,
-                    claims: identity.Claims,
-                    expires: now.Add(TimeSpan.FromMinutes(AuthOptions.LIFETIME)),
-                    signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
-            var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
-
-            var response = new
-            {
-                access_token = encodedJwt,
-                mail = identity.Name
-            };
-            return new JsonResult(response);
+            return Ok(token);
         }
 
-        /// <summary>
-        /// Находит зарегистрированного пользователя по почте и паролю
-        /// </summary>
-        /// <param name="mail">Почта</param>
-        /// <param name="password">Пароль</param>
-        /// <returns></returns>
-        private ClaimsIdentity GetIdentity(string mail, string password)
+        [HttpPost("refresh-token")]
+        public IActionResult RefreshAuthToken(Tokens data)
         {
-            User user = _context.Users.FirstOrDefault(x => x.Mail == mail && x.Password == password);
-            if (user != null)
+            User userData = _context.Users.FirstOrDefault(x => x.Mail == data.Mail && x.RefreshToken == data.RefreshToken);
+            if (userData == null || userData.RefreshTokenExpiryTime <= DateTime.UtcNow)
             {
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimsIdentity.DefaultNameClaimType, user.Mail)
-                };
-                ClaimsIdentity claimsIdentity =
-                new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType, user.Mail);
-                return claimsIdentity;
+                return Unauthorized();
             }
-            // Если пользователя не найдено
-            return null;
+            var token = _jWTManager.GenerateJWTToken(userData);
+            token.RefreshToken = data.RefreshToken;
+
+            return Ok(token);
         }
     }
 }
