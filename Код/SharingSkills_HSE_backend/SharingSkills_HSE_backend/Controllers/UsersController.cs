@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SharingSkills_HSE_backend.Models;
@@ -87,6 +89,11 @@ namespace SharingSkills_HSE_backend.Controllers
                 return View("ResetPasswordConfirmation");
             }
             user.Password = model.Password;
+            // Генерация добавки для хеширования пароля
+            GenerateSalt(ref user);
+            // Хеширования указанного пароля
+            user.Password = HashPassword(user.SaltForPassword, user.Password);
+
             _context.Entry(user).State = EntityState.Modified;
             await _context.SaveChangesAsync();
             return View("ResetPasswordConfirmation");
@@ -262,6 +269,22 @@ namespace SharingSkills_HSE_backend.Controllers
         {
             if (mail != user.Mail)
                 return BadRequest();
+
+            User userData = _context.Users.FirstOrDefault(x => x.Mail == mail);
+            if (userData == null)
+            {
+                return NotFound();
+            }
+
+            // Если пользователь меняет пароль - его надо захешировать
+            if (userData.Password != user.Password)
+            { // При каждой смене пароля добавка также перегенерируется, чтобы сложнее было найти закономерность хеша
+                // Генерация добавки для хеширования пароля
+                GenerateSalt(ref user);
+                // Хеширования указанного при изменении пользователя пароля
+                user.Password = HashPassword(user.SaltForPassword, user.Password);
+            }
+
             _context.Entry(user).State = EntityState.Modified;
             try
             {
@@ -269,10 +292,7 @@ namespace SharingSkills_HSE_backend.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!UserExists(mail))
-                    return NotFound();
-                else
-                    throw;
+                throw;
             }
             return NoContent();
         }
@@ -290,6 +310,11 @@ namespace SharingSkills_HSE_backend.Controllers
                 return BadRequest();
             // Генерация кода подтверждения
             user.ConfirmationCodeServer = rnd.Next(1000, 10000);
+            // Генерация добавки для хеширования пароля
+            GenerateSalt(ref user);
+            // Хеширования указанного при создании пользователя пароля
+            user.Password = HashPassword(user.SaltForPassword, user.Password);
+
             // Отправка этого кода на почту
             await Mail.SendEmailAsync(user.Mail, "Код подтверждения регистрации", "Здравствуйте!\n" +
                 "Спасибо за регистрацию в Обмене Навыками\n" +
@@ -317,16 +342,6 @@ namespace SharingSkills_HSE_backend.Controllers
         }
 
         /// <summary>
-        /// Проверка наличия пользователя
-        /// </summary>
-        /// <param name="mail">Почтовый адрес</param>
-        /// <returns>Существует ли такой пользователь</returns>
-        private bool UserExists(string mail)
-        {
-            return _context.Users.Any(e => e.Mail == mail);
-        }
-
-        /// <summary>
         /// Получение токена авторизации
         /// </summary>
         /// <param name="mail">Почта</param>
@@ -335,12 +350,13 @@ namespace SharingSkills_HSE_backend.Controllers
         // POST: api/Users/authenticate/kdtsaryov@edu.hse.ru/123456789
         public async Task<IActionResult> Authenticate(string mail, string password)
         {
-            User userData = _context.Users.FirstOrDefault(x => x.Mail == mail && x.Password == password);
+            User userData = _context.Users.FirstOrDefault(x => x.Mail == mail);
 
-            if (userData == null)
+            if (userData == null || IsPasswordIncorrect(userData, password))
             {
                 return Unauthorized();
             }
+
             var token = _jWTManager.Authenticate(ref userData);
 
             _context.Entry(userData).State = EntityState.Modified;
@@ -376,6 +392,44 @@ namespace SharingSkills_HSE_backend.Controllers
             token.RefreshToken = data.RefreshToken;
 
             return Ok(token);
+        }
+
+        /// <summary>
+        /// Проверка наличия пользователя
+        /// </summary>
+        /// <param name="mail">Почтовый адрес</param>
+        /// <returns>Существует ли такой пользователь</returns>
+        private bool UserExists(string mail)
+        {
+            return _context.Users.Any(e => e.Mail == mail);
+        }
+
+        private static void GenerateSalt(ref User user)
+        {
+            byte[] salt = new byte[128 / 8];
+            using (var rngCsp = new RNGCryptoServiceProvider())
+            {
+                rngCsp.GetNonZeroBytes(salt);
+            }
+
+            user.SaltForPassword = salt;
+        }
+
+        private static string HashPassword(byte[] salt, string password)
+        {
+            return Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: password, // хешируемый пароль
+                salt: salt, // добавка для секьюрности хеша
+                prf: KeyDerivationPrf.HMACSHA256, // Хеш (SHA256 вполне хватает для нужд хранения паролей)
+                iterationCount: 100000, // количество хеш-итераций
+                numBytesRequested: 256 / 8)); // желаемая длина выходного ключа
+        }
+
+        private static bool IsPasswordIncorrect(User user, string password)
+        {
+            var hashedPassword = HashPassword(user.SaltForPassword, password);
+
+            return user.Password != hashedPassword;
         }
     }
 }

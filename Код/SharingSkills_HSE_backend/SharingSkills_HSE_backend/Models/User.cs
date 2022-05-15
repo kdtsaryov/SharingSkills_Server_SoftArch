@@ -31,8 +31,13 @@ namespace SharingSkills_HSE_backend.Models
         /// Пароль
         /// </summary>
         [DataType(DataType.Password)]
-        [StringLength(41, MinimumLength = 6, ErrorMessage = "Пароль должен быть от 6 до 40 символов")]
+        [StringLength(129, MinimumLength = 6, ErrorMessage = "Пароль должен быть от 6 до 128 символов")]
         public string Password { get; set; }
+
+        /// <summary>
+        /// Дополнительная секьюрность для хранения паролей
+        /// </summary>
+        public byte[] SaltForPassword { get; set; }
 
         /// <summary>
         /// Имя
