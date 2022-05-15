@@ -404,6 +404,10 @@ namespace SharingSkills_HSE_backend.Controllers
             return _context.Users.Any(e => e.Mail == mail);
         }
 
+        /// <summary>
+        /// Генерация добавки ("соли") к паролю пользователя для надежности хеша
+        /// </summary>
+        /// <param name="user">Сущность пользователя, в которую добавляется соль</param>
         private static void GenerateSalt(ref User user)
         {
             byte[] salt = new byte[128 / 8];
@@ -415,6 +419,12 @@ namespace SharingSkills_HSE_backend.Controllers
             user.SaltForPassword = salt;
         }
 
+        /// <summary>
+        /// Хеширование пароля
+        /// </summary>
+        /// <param name="salt">Добавка для хеша</param>
+        /// <param name="password">Хешируемый пароль</param>
+        /// <returns>Хеш пароля</returns>
         private static string HashPassword(byte[] salt, string password)
         {
             return Convert.ToBase64String(KeyDerivation.Pbkdf2(
@@ -425,6 +435,12 @@ namespace SharingSkills_HSE_backend.Controllers
                 numBytesRequested: 256 / 8)); // желаемая длина выходного ключа
         }
 
+        /// <summary>
+        /// Проверка корректности переданного пароля
+        /// </summary>
+        /// <param name="user">Сущность пользователя, для которой проверяется пароль</param>
+        /// <param name="password">Проверяемый пароль</param>
+        /// <returns>Булка. 1 - если пароль не соответствует захешированному в сущности, 0 - иначе</returns>
         private static bool IsPasswordIncorrect(User user, string password)
         {
             var hashedPassword = HashPassword(user.SaltForPassword, password);
